@@ -81,9 +81,14 @@ class Array(object):  # noqa: WPS214
 
         Returns:
             sum of two instances.
+
+        Raises:
+            TypeError: other is not instance of Array
         """
-        sum_data = self._data + other.get_data()  # noqa: WPS110
-        return Array(*sum_data)
+        if isinstance(other, Array):
+            sum_data = self._data + other.get_data()  # noqa: WPS110
+            return Array(*sum_data)
+        raise TypeError
 
     def __eq__(self, other):
         """
@@ -95,7 +100,9 @@ class Array(object):  # noqa: WPS214
         Returns:
             True if instances are equal, False else.
         """
-        return self._data == other.get_data()
+        if isinstance(other, Array):
+            return self._data == other.get_data()
+        return False
 
     def __len__(self):
         """
