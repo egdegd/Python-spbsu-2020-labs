@@ -10,7 +10,80 @@ class ContractError(Exception):
 
 
 #: Special value, that indicates that validation for this type is not required.
-Any = object()
+Any = object
+
+
+def check_type(arg_type):
+    """
+    Check whether pair is a argument and type.
+
+    Args:
+        arg_type: pair of argument and type.
+
+    Raises:
+        ContractError: if argument have other type.
+    """
+    if not isinstance(arg_type[0], arg_type[1]):
+        raise ContractError()
+
+
+def check_types(args, arg_types):
+    """
+    Check argument types.
+
+    Args:
+        args: arguments.
+        arg_types: types.
+
+    Raises:
+        ContractError: if arguments have other types.
+    """
+    if arg_types is not None:
+        if len(args) != len(arg_types):
+            raise ContractError()
+        list(map(check_type, zip(args, arg_types)))
+
+
+def check_return_type(ret, return_type):
+    """
+    Check return type.
+
+    Args:
+        ret: return value.
+        return_type: type of return value.
+
+    Raises:
+        ContractError: if return value have other type.
+    """
+    if return_type is not None:
+        if not isinstance(ret, return_type):
+            raise ContractError()
+
+
+def check_raises(func, raises, args):
+    """
+    Check raises checks raises for the given exception.
+
+    Args:
+        func: function that can raise exception.
+        raises: possible exception.
+        args: args for the function.
+
+    Raises:
+        ContractError: if exception is not in raises.
+        Exception: if function raise exception.
+
+    Returns:
+        function value.
+    """
+    if raises is not None:
+        try:
+            return func(*args)
+        except Exception as err:
+            if isinstance(err, raises):
+                raise err
+            raise ContractError() from err
+    return func(*args)
 
 
 def contract(arg_types=None, return_type=None, raises=None):
@@ -24,33 +97,14 @@ def contract(arg_types=None, return_type=None, raises=None):
 
     Returns:
         decorator.
-
-    Raises:
-            ContractError: types don't match.
     """
+
     def decorator(func):
-        def wrapped(*args, **kwargs):
-            if arg_types is not None:
-                all_args = args + tuple(kwargs.values())
-                if len(all_args) != len(arg_types):
-                    raise ContractError
-                for step, cur_type in enumerate(arg_types):
-                    if cur_type == Any:
-                        continue
-                    if not isinstance(all_args[step], cur_type):
-                        raise ContractError
-            try:
-                ret = func(*args, **kwargs)
-            except Exception as err:
-                if isinstance(err, raises):
-                    raise err
-                else:
-                    raise ContractError
-            else:
-                if return_type is not None:
-                    if not (return_type == Any or isinstance(ret, return_type)):
-                        raise ContractError
-                return ret
+        def wrapped(*args):  # noqa: WPS430
+            check_types(args, arg_types)
+            ret = check_raises(func, raises, args)
+            check_return_type(ret, return_type)
+            return ret
 
         return wrapped
 
